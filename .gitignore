@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Datasets and caches
+cifar-10-batches-py/
+cifar-10-python.tar.gz
+data/
+datasets/
+
+# Model artifacts
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+
+# Course submission archives and generated reports
+*_A[1-6].zip
+htmlcov/
+.coverage

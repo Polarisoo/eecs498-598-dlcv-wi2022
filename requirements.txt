@@ -1,0 +1,8 @@
+# Install a matching torch / torchvision pair for your CPU or CUDA platform.
+torch>=2.6,<3
+torchvision>=0.21,<1
+jupyterlab>=4.3,<5
+ipykernel>=6.29,<8
+matplotlib>=3.8,<4
+numpy>=1.26,<3
+pytest>=8,<10
