@@ -8,6 +8,7 @@ This public study repository maintains programming assignments for the Universit
 - [Assignment 2](https://web.eecs.umich.edu/~justincj/teaching/eecs498/WI2022/assignment2.html)
 - [Assignment 3](https://web.eecs.umich.edu/~justincj/teaching/eecs498/WI2022/assignment3.html)
 - [Assignment 4](https://web.eecs.umich.edu/~justincj/teaching/eecs498/WI2022/assignment4.html)
+- [Assignment 5](https://web.eecs.umich.edu/~justincj/teaching/eecs498/WI2022/assignment5.html)
 
 > Course submissions must be each student's own work. The syllabus prohibits looking at or distributing solutions to similar assignments. This repository is public at the user's request, so do not treat it as an official course-submission channel or reuse the code in a class where public solution sharing is prohibited. This repository has no open-source license.
 
@@ -19,7 +20,7 @@ This public study repository maintains programming assignments for the Universit
 | A2 | Linear classifiers; two-layer network | Core implementation complete; GPU experiments pending |
 | A3 | Modular API; CNN; BatchNorm; Autograd | Core implementation complete; GPU experiments pending |
 | A4 | Object detection | Core implementation complete; GPU training artifacts pending |
-| A5 | RNNs; image captioning; Transformers | Not started |
+| A5 | RNNs; image captioning; Transformers | Core implementation complete; GPU training artifacts pending |
 | A6 | VAE; GAN; style transfer; visualization | Not started |
 
 ## Repository layout
@@ -62,7 +63,8 @@ python -m pytest
 
 CPU tests cover A1 tensor exercises and kNN; A2 SVM/Softmax losses, gradients,
 SGD, and two-layer-network passes; A3 modular layers, optimizers, dropout,
-convolution, pooling, BatchNorm, and complete-network integration; and A4 FPN
+convolution, pooling, BatchNorm, and complete-network integration; A4 FPN
 utilities, FCOS, RPN, Faster R-CNN box math, losses, and fake-backbone forward
+passes; and A5 RNN/LSTM/attention captioning plus Transformer blocks and forward
 passes. CUDA-only tests are skipped when no NVIDIA GPU is available. Accuracy
 and final checkpoint cells should still be run from the course notebooks.
