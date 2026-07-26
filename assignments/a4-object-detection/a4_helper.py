@@ -84,22 +84,22 @@ class VOC2007DetectionTiny(torch.utils.data.Dataset):
         """
         Try to download VOC dataset and save it to `dataset_dir`.
         """
-        import wget
+        # Use the system wget: the `wget` pip package is not preinstalled on
+        # modern Colab, and the course host's certificate chain is incomplete
+        # for command-line clients (hence --no-check-certificate).
+        import subprocess
 
         os.makedirs(dataset_dir, exist_ok=True)
         # fmt: off
-        wget.download(
+        for _url in (
             "https://web.eecs.umich.edu/~justincj/data/VOCtrainval_06-Nov-2007.tar",
-            out=dataset_dir,
-        )
-        wget.download(
             "https://web.eecs.umich.edu/~justincj/data/voc07_train.json",
-            out=dataset_dir,
-        )
-        wget.download(
             "https://web.eecs.umich.edu/~justincj/data/voc07_val.json",
-            out=dataset_dir,
-        )
+        ):
+            subprocess.run(
+                ["wget", "-q", "--no-check-certificate", _url, "-P", dataset_dir],
+                check=True,
+            )
         # fmt: on
 
         # Extract TAR file:
