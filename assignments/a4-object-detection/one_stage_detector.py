@@ -566,7 +566,12 @@ class FCOS(nn.Module):
 
         loss_cls = sigmoid_focal_loss(pred_cls_logits, target_classes, reduction="none")
 
-        loss_box = F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
+        # Average across the four LTRB components, as in the notebook example.
+        # Without this factor the effective box-loss learning rate is 4x too
+        # large and the full 9k-iteration run can diverge to NaN.
+        loss_box = 0.25 * F.l1_loss(
+            pred_boxreg_deltas, matched_gt_deltas, reduction="none"
+        )
         loss_box[~pos_mask] = 0.0
 
         target_ctr = fcos_make_centerness_targets(matched_gt_deltas.reshape(-1, 4)).reshape(

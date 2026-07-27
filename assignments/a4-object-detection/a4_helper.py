@@ -39,6 +39,7 @@ class VOC2007DetectionTiny(torch.utils.data.Dataset):
         """
         super().__init__()
         self.image_size = image_size
+        self.split = split
 
         # Attempt to download the dataset from Justin's server:
         if download:
@@ -69,14 +70,15 @@ class VOC2007DetectionTiny(torch.utils.data.Dataset):
 
         # Define a transformation function for image: Resize the shorter image
         # edge then take a center crop (optional) and normalize.
-        _transforms = [
-            transforms.Resize(image_size),
-            transforms.CenterCrop(image_size),
+        _transforms = [transforms.Resize(image_size)]
+        if split == "train":
+            _transforms.append(transforms.CenterCrop(image_size))
+        _transforms.extend([
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
             ),
-        ]
+        ])
         self.image_transform = transforms.Compose(_transforms)
 
     @staticmethod
@@ -84,26 +86,69 @@ class VOC2007DetectionTiny(torch.utils.data.Dataset):
         """
         Try to download VOC dataset and save it to `dataset_dir`.
         """
-        # Use the system wget: the `wget` pip package is not preinstalled on
-        # modern Colab, and the course host's certificate chain is incomplete
-        # for command-line clients (hence --no-check-certificate).
+        # Prefer the system wget on Colab, but fall back to Python's standard
+        # library on local Windows machines where wget is usually unavailable.
+        # The course host's certificate chain is incomplete for command-line
+        # clients, so both paths intentionally skip certificate verification.
         import subprocess
+        import urllib.request
+        import ssl
 
         os.makedirs(dataset_dir, exist_ok=True)
+        context = ssl._create_unverified_context()
         # fmt: off
         for _url in (
             "https://web.eecs.umich.edu/~justincj/data/VOCtrainval_06-Nov-2007.tar",
             "https://web.eecs.umich.edu/~justincj/data/voc07_train.json",
             "https://web.eecs.umich.edu/~justincj/data/voc07_val.json",
         ):
-            subprocess.run(
-                ["wget", "-q", "--no-check-certificate", _url, "-P", dataset_dir],
-                check=True,
-            )
+            output_path = os.path.join(dataset_dir, os.path.basename(_url))
+            expected_size = None
+            try:
+                with urllib.request.urlopen(_url, context=context) as response:
+                    content_length = response.headers.get("Content-Length")
+                    if content_length is not None:
+                        expected_size = int(content_length)
+            except Exception:
+                pass
+
+            if (
+                os.path.isfile(output_path)
+                and (
+                    expected_size is None
+                    or os.path.getsize(output_path) == expected_size
+                )
+            ):
+                continue
+            if os.path.isfile(output_path):
+                os.remove(output_path)
+
+            if shutil.which("wget") is not None:
+                subprocess.run(
+                    ["wget", "-q", "--no-check-certificate", _url, "-P", dataset_dir],
+                    check=True,
+                )
+            else:
+                tmp_path = output_path + ".tmp"
+                if os.path.isfile(tmp_path):
+                    os.remove(tmp_path)
+                with urllib.request.urlopen(_url, context=context) as response:
+                    with open(tmp_path, "wb") as output_file:
+                        shutil.copyfileobj(response, output_file)
+                if expected_size is not None and os.path.getsize(tmp_path) != expected_size:
+                    raise RuntimeError(
+                        f"Downloaded {_url} incompletely: "
+                        f"{os.path.getsize(tmp_path)} / {expected_size} bytes"
+                    )
+                os.replace(tmp_path, output_path)
         # fmt: on
 
         # Extract TAR file:
         import tarfile
+
+        voc_dir = os.path.join(dataset_dir, "VOCdevkit")
+        if os.path.isdir(voc_dir):
+            shutil.rmtree(voc_dir)
 
         voc_tar = tarfile.open(
             os.path.join(dataset_dir, "VOCtrainval_06-Nov-2007.tar")
@@ -152,18 +197,28 @@ class VOC2007DetectionTiny(torch.utils.data.Dataset):
                 new_height = self.image_size
                 new_width = original_width * self.image_size / original_height
 
-            _x1 = (new_width - self.image_size) // 2
-            _y1 = (new_height - self.image_size) // 2
+            if self.split == "train":
+                _x1 = (new_width - self.image_size) // 2
+                _y1 = (new_height - self.image_size) // 2
+                max_width = self.image_size
+                max_height = self.image_size
+            else:
+                # Validation images are resized but not cropped, so predictions
+                # and GT boxes cover the complete image.
+                _x1 = 0
+                _y1 = 0
+                max_width = new_width
+                max_height = new_height
 
             # Un-normalize bounding box co-ordinates and shift due to center crop.
             # Clamp to (0, image size).
             gt_boxes[:, 0] = torch.clamp(gt_boxes[:, 0] * new_width - _x1, min=0)
             gt_boxes[:, 1] = torch.clamp(gt_boxes[:, 1] * new_height - _y1, min=0)
             gt_boxes[:, 2] = torch.clamp(
-                gt_boxes[:, 2] * new_width - _x1, max=self.image_size
+                gt_boxes[:, 2] * new_width - _x1, max=max_width
             )
             gt_boxes[:, 3] = torch.clamp(
-                gt_boxes[:, 3] * new_height - _y1, max=self.image_size
+                gt_boxes[:, 3] * new_height - _y1, max=max_height
             )
 
         # Concatenate GT classes with GT boxes; shape: (N, 5)
@@ -291,14 +346,14 @@ def inference_with_detector(
     )
 
     if output_dir is not None:
-        det_dir = "mAP/input/detection-results"
-        gt_dir = "mAP/input/ground-truth"
+        det_dir = os.path.join(output_dir, "detection-results")
+        gt_dir = os.path.join(output_dir, "ground-truth")
         if os.path.exists(det_dir):
             shutil.rmtree(det_dir)
-        os.mkdir(det_dir)
+        os.makedirs(det_dir)
         if os.path.exists(gt_dir):
             shutil.rmtree(gt_dir)
-        os.mkdir(gt_dir)
+        os.makedirs(gt_dir)
 
     for iter_num, test_batch in enumerate(test_loader):
         image_paths, images, gt_boxes = test_batch
@@ -312,10 +367,6 @@ def inference_with_detector(
                     test_score_thresh=score_thresh,
                     test_nms_thresh=nms_thresh,
                 )
-
-        # Skip current iteration if no predictions were found.
-        if pred_boxes.shape[0] == 0:
-            continue
 
         # Remove padding (-1) and batch dimension from predicted / GT boxes
         # and transfer to CPU. Indexing `[0]` here removes batch dimension:
