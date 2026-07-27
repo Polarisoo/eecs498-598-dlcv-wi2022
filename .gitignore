@@ -21,12 +21,18 @@ cifar-10-batches-py/
 cifar-10-python.tar.gz
 data/
 datasets/
+VOCdevkit/
+VOCtrainval_*.tar
+voc07_*.json
+mAP/
 
 # Model artifacts
 *.pt
 *.pth
 *.ckpt
 checkpoints/
+*_training_history.json
+*_training_loss.png
 
 # Course submission archives and generated reports
 *_A[1-6].zip

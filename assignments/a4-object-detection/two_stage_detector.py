@@ -962,22 +962,19 @@ class FasterRCNN(nn.Module):
         # There are no neutral proposals in second-stage.
         ######################################################################
         matched_gt_boxes = []
-        for _idx in range(len(gt_boxes)):
-            # Get proposals per image from this dictionary of list of tensors.
-            proposals_per_fpn_level_per_image = {
-                level_name: prop[_idx]
-                for level_name, prop in proposals_per_fpn_level.items()
-            }
-            proposals_per_image = self._cat_across_fpn_levels(
-                proposals_per_fpn_level_per_image, dim=0
-            )
-            gt_boxes_per_image = gt_boxes[_idx]
-            # Replace "pass" statement with your code
-            matched_gt_boxes.append(
-                rcnn_match_anchors_to_gt(
-                    proposals_per_image, gt_boxes_per_image, iou_thresholds=(0.5, 0.5)
+        # RoIAlign outputs above are concatenated in FPN-level-major order:
+        # all images from p3, then all images from p4, then all images from p5.
+        # Match targets in the same order so every classifier logit is paired
+        # with the label of the proposal that produced its RoI feature.
+        for level_name in proposals_per_fpn_level.keys():
+            for _idx in range(len(gt_boxes)):
+                matched_gt_boxes.append(
+                    rcnn_match_anchors_to_gt(
+                        proposals_per_fpn_level[level_name][_idx],
+                        gt_boxes[_idx],
+                        iou_thresholds=(0.5, 0.5),
+                    )
                 )
-            )
         ######################################################################
         #                           END OF YOUR CODE                         #
         ######################################################################
