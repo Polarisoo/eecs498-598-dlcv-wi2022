@@ -24,22 +24,24 @@ submission archives and administrative packaging cells are tracked separately.
 | A1 | PyTorch 101; k-Nearest Neighbors | **Complete** - required PyTorch and kNN implementations are present and locally tested |
 | A2 | Linear classifiers; two-layer network | **Complete** - all three notebooks executed without notebook errors (13/13, 34/34, and 24/24 code cells) |
 | A3 | Modular API; CNN; BatchNorm; Autograd | **Complete** - both core notebooks executed without errors; only the final submission-packaging cell is not preserved |
-| A4 | Object detection | **In progress** - FCOS/one-stage training is complete (validation mAP about **25.47%**); corrected Faster R-CNN/two-stage training is still running locally and needs final mAP validation |
-| A5 | RNNs; image captioning; Transformers | **In progress** - Colab compatibility issues are fixed and RNN captioning is training; LSTM, attention captioning, Transformers, and saved final outputs remain |
+| A4 | Object detection | **In progress** - FCOS/one-stage training is complete (validation mAP about **25.47%**); the corrected Faster R-CNN/two-stage implementation passes the full local test suite and its final 9,000-iteration GPU run is in progress |
+| A5 | RNNs; image captioning; Transformers | **Partially complete** - the RNN/LSTM/attention-captioning notebook completed on a Colab T4 and met its loss targets; the Transformer notebook and persistence of the Colab outputs remain |
 | A6 | VAE; GAN; style transfer; visualization | **Complete** - all four notebooks executed with saved outputs and no notebook errors (23/23, 15/15, 23/23, and 15/15 code cells) |
 
 ### Work remaining for A4 and A5
 
 - **A4 Two-stage detector:** the first completed Faster R-CNN run produced an
-  invalid 0.60% mAP because RoI features and matched labels used inconsistent
-  batch ordering. That issue has been fixed. A clean 9,000-iteration local GPU
-  retraining run is in progress; the remaining work is to save the corrected
-  checkpoint, run validation, and record the final mAP.
-- **A5 RNN/LSTM captioning and Transformers:** the active Colab notebook now
-  has corrected repository-path setup, a current Matplotlib style name, and a
-  compatible ImageEncoder call. RNN training is underway. The remaining work
-  is to finish RNN, LSTM, and attention-captioning training, run
-  Transformers.ipynb, and save the final notebook outputs back to GitHub.
+  invalid 0.60% mAP because FPN locations, RoI features, and matched labels did
+  not use a consistent ordering. The coordinate and target-ordering issues are
+  fixed, validation no longer center-crops images, and zero-detection images
+  are now included in mAP evaluation. A clean 9,000-iteration local GPU run is
+  in progress; the remaining work is to finish it and record the full-set mAP.
+- **A5 Transformers and output persistence:** RNN, LSTM, and attention models
+  completed 60-epoch Colab T4 runs with final losses **0.1340**, **1.7816**, and
+  **0.1016** respectively; the attention small-data overfit loss was **5.9258**.
+  The notebook's final result-saving cell also ran in the Colab VM. Remaining
+  work is to execute `Transformers.ipynb` and save the live Colab outputs back
+  into the repository after Colab's GitHub authorization is available.
 
 ## Recent updates
 
@@ -51,10 +53,12 @@ As of 2026-07-27:
 - A2 now includes hand_drawn_weights.jpeg for the challenge problem.
 - A2, A3, and all four A6 notebooks have been executed and checked for notebook
   error outputs.
-- A4 FCOS training and evaluation are complete; corrected Faster R-CNN
-  retraining is underway.
-- A5 Colab execution has started after resolving current-runtime compatibility
-  issues; completed outputs are not yet committed.
+- A4 FCOS training and evaluation are complete. Faster R-CNN ordering,
+  validation preprocessing, and mAP-output bugs are fixed and covered by
+  regression tests; corrected retraining is underway.
+- A5 RNN/LSTM/attention-captioning execution completed after resolving
+  current-runtime compatibility issues. The measured losses meet the notebook
+  targets; the live Colab outputs are not yet embedded in the tracked notebook.
 
 ## Repository layout
 
@@ -110,8 +114,8 @@ checkpoint cells should still be run from the course notebooks.
 
 - Finish and validate the corrected A4 two-stage detector, then preserve its
   final mAP output.
-- Finish A5 RNN/LSTM/attention captioning and Transformers.ipynb, then save
-  the completed Colab outputs back to the repository.
+- Run `Transformers.ipynb`, then authorize Colab's GitHub integration and save
+  the already-completed RNN/LSTM/attention outputs back to the repository.
 - Add a lightweight A6 pytest smoke-test suite if this repository should track
   A6 implementation correctness locally, the same way it currently tracks
   A1-A5.
