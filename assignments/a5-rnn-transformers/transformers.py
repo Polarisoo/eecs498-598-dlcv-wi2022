@@ -979,12 +979,9 @@ def position_encoding_sinusoid(K: int, M: int) -> Tensor:
     ##############################################################################
     # Replace "pass" statement with your code
     positions = torch.arange(K, dtype=torch.float32).unsqueeze(1)
-    dims = torch.arange(M, dtype=torch.float32).unsqueeze(0)
-    div_term = torch.pow(10000.0, 2 * torch.div(dims, 2, rounding_mode="floor") / M)
-    enc = positions / div_term
     y = torch.zeros(K, M, dtype=torch.float32)
-    y[:, 0::2] = torch.sin(enc[:, 0::2])
-    y[:, 1::2] = torch.cos(enc[:, 1::2])
+    y[:, 0::2] = torch.sin(positions).expand(-1, (M + 1) // 2)
+    y[:, 1::2] = torch.cos(positions).expand(-1, M // 2)
     y = y.unsqueeze(0)
     ##############################################################################
     #               END OF YOUR CODE                                             #

@@ -15,7 +15,7 @@ This public study repository maintains programming assignments for the Universit
 
 ## Progress
 
-Progress snapshot: **2026-07-27**. For this progress report, "complete" means
+Progress snapshot: **2026-07-28**. For this progress report, "complete" means
 the required implementation and core experiments are complete; final course
 submission archives and administrative packaging cells are tracked separately.
 
@@ -24,28 +24,29 @@ submission archives and administrative packaging cells are tracked separately.
 | A1 | PyTorch 101; k-Nearest Neighbors | **Complete** - required PyTorch and kNN implementations are present and locally tested |
 | A2 | Linear classifiers; two-layer network | **Complete** - all three notebooks executed without notebook errors (13/13, 34/34, and 24/24 code cells) |
 | A3 | Modular API; CNN; BatchNorm; Autograd | **Complete** - both core notebooks executed without errors; only the final submission-packaging cell is not preserved |
-| A4 | Object detection | **In progress** - FCOS/one-stage training is complete (validation mAP about **25.47%**); the corrected Faster R-CNN/two-stage implementation passes the full local test suite and its final 9,000-iteration GPU run is in progress |
-| A5 | RNNs; image captioning; Transformers | **Partially complete** - the RNN/LSTM/attention-captioning notebook completed on a Colab T4 and met its loss targets; the Transformer notebook and persistence of the Colab outputs remain |
+| A4 | Object detection | **Complete** - FCOS validation mAP is about **25.47%**; corrected Faster R-CNN completed 9,000 local-GPU iterations and reached **37.75% mAP** |
+| A5 | RNNs; image captioning; Transformers | **Complete** - all numeric checks, overfit experiments, full training runs, inference, and attention visualizations have saved notebook outputs; Transformer validation accuracy is **81.64%** |
 | A6 | VAE; GAN; style transfer; visualization | **Complete** - all four notebooks executed with saved outputs and no notebook errors (23/23, 15/15, 23/23, and 15/15 code cells) |
 
-### Work remaining for A4 and A5
+### Final GPU results for A4 and A5
 
-- **A4 Two-stage detector:** the first completed Faster R-CNN run produced an
-  invalid 0.60% mAP because FPN locations, RoI features, and matched labels did
-  not use a consistent ordering. The coordinate and target-ordering issues are
-  fixed, validation no longer center-crops images, and zero-detection images
-  are now included in mAP evaluation. A clean 9,000-iteration local GPU run is
-  in progress; the remaining work is to finish it and record the full-set mAP.
-- **A5 Transformers and output persistence:** RNN, LSTM, and attention models
-  completed 60-epoch Colab T4 runs with final losses **0.1340**, **1.7816**, and
-  **0.1016** respectively; the attention small-data overfit loss was **5.9258**.
-  The notebook's final result-saving cell also ran in the Colab VM. Remaining
-  work is to execute `Transformers.ipynb` and save the live Colab outputs back
-  into the repository after Colab's GitHub authorization is available.
+- **A4 Two-stage detector:** the first Faster R-CNN run produced an invalid
+  0.60% mAP because FPN locations, RoI features, and matched labels did not use
+  a consistent ordering. After correcting the ordering, validation transform,
+  and zero-detection evaluation paths, the clean 9,000-iteration run reached
+  **37.75% mAP** on the full validation set.
+- **A5 image captioning:** the saved full-training losses are **0.0947** (RNN),
+  **0.4555** (LSTM), and **0.0969** (Attention LSTM), all below the notebook
+  targets. The Attention LSTM small-data overfit loss is **5.6571** (target
+  `<9`). Sampling and attention visualizations are embedded in the notebook.
+- **A5 Transformers:** the small-data experiment reaches **100% accuracy** and
+  the final 200-epoch model reaches **81.64% validation accuracy**, exceeding
+  the notebook's approximately 80% target. Training, inference, and three-layer
+  encoder/decoder attention visualizations are saved in `Transformers.ipynb`.
 
 ## Recent updates
 
-As of 2026-07-27:
+As of 2026-07-28:
 
 - A2-A5 notebooks were adapted for the Colab workflow that clones this GitHub
   repository directly, instead of relying on a manually mounted Google Drive
@@ -53,12 +54,13 @@ As of 2026-07-27:
 - A2 now includes hand_drawn_weights.jpeg for the challenge problem.
 - A2, A3, and all four A6 notebooks have been executed and checked for notebook
   error outputs.
-- A4 FCOS training and evaluation are complete. Faster R-CNN ordering,
-  validation preprocessing, and mAP-output bugs are fixed and covered by
-  regression tests; corrected retraining is underway.
-- A5 RNN/LSTM/attention-captioning execution completed after resolving
-  current-runtime compatibility issues. The measured losses meet the notebook
-  targets; the live Colab outputs are not yet embedded in the tracked notebook.
+- A4 FCOS and Faster R-CNN training/evaluation are complete. Faster R-CNN
+  ordering, validation preprocessing, and mAP-output bugs are fixed and covered
+  by regression tests; the corrected mAP is embedded in the notebook.
+- A5 RNN/LSTM/attention-captioning and Transformers completed on the local RTX
+  4060. Current Torchvision model-weight compatibility was added, all target
+  metrics were met, and the resulting outputs are embedded in both notebooks.
+- The full repository regression suite passes: **47 passed**.
 
 ## Repository layout
 
@@ -76,7 +78,7 @@ Each assignment preserves the official starter's relative layout. Datasets, cach
 
 ## JupyterLab setup
 
-Python 3.11 is recommended. The official notebooks are Colab-first: local JupyterLab is useful for editing and CPU tests, while GPU cells are best run in a Colab GPU runtime.
+Python 3.11 is recommended. The official notebooks are Colab-first, but they can also run in local JupyterLab with a CUDA-enabled PyTorch environment and an NVIDIA GPU. The recorded A4/A5 results in this repository were produced locally on an RTX 4060 Laptop GPU.
 
 ```powershell
 py -3.11 -m venv .venv
@@ -110,13 +112,11 @@ by running the four A6 notebooks in a Colab GPU runtime and keeping the required
 outputs in the notebooks. Accuracy, generated samples, visualizations, and final
 checkpoint cells should still be run from the course notebooks.
 
-## Remaining work
+## Remaining administrative work
 
-- Finish and validate the corrected A4 two-stage detector, then preserve its
-  final mAP output.
-- Run `Transformers.ipynb`, then authorize Colab's GitHub integration and save
-  the already-completed RNN/LSTM/attention outputs back to the repository.
-- Add a lightweight A6 pytest smoke-test suite if this repository should track
-  A6 implementation correctness locally, the same way it currently tracks
-  A1-A5.
+- Before an official course submission, replace placeholder identity fields
+  with the student's real name/UMID and generate the required submission ZIPs.
+- A6 has complete saved notebook outputs but no dedicated pytest smoke-test
+  module; adding one would be optional repository maintenance, not unfinished
+  assignment work.
 - Keep datasets, checkpoints, caches, and submission ZIP files outside Git.

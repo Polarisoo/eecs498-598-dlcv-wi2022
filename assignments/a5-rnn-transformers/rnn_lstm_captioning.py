@@ -23,15 +23,30 @@ class ImageEncoder(nn.Module):
     tiny RegNet model so it can train decently with a single K80 Colab GPU.
     """
 
-    def __init__(self, pretrained: bool = True, verbose: bool = True):
+    def __init__(
+        self,
+        pretrained: bool = True,
+        verbose: bool = True,
+        weights=None,
+    ):
         """
         Args:
-            pretrained: Whether to initialize this model with pretrained weights
-                from Torchvision library.
+            pretrained: Backward-compatible flag controlling whether to use
+                pretrained weights when ``weights`` is not supplied.
             verbose: Whether to log expected output shapes during instantiation.
+            weights: Torchvision RegNet-X 400MF weights enum, ``"DEFAULT"``, or
+                ``None``. This accepts the current Torchvision model API used by
+                the notebook while preserving the starter code's old interface.
         """
         super().__init__()
-        self.cnn = torchvision.models.regnet_x_400mf(pretrained=pretrained)
+        weights_enum = torchvision.models.RegNet_X_400MF_Weights
+        if weights is None:
+            weights = weights_enum.DEFAULT if pretrained else None
+        elif isinstance(weights, str):
+            if weights.upper() != "DEFAULT":
+                raise ValueError(f"Unsupported RegNet weights value: {weights}")
+            weights = weights_enum.DEFAULT
+        self.cnn = torchvision.models.regnet_x_400mf(weights=weights)
 
         # Torchvision models return global average pooled features by default.
         # Our attention-based models may require spatial grid features. So we
