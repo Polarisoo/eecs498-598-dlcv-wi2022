@@ -8,6 +8,7 @@ from torch import nn
 A4_DIR = pathlib.Path(__file__).resolve().parents[1] / "assignments" / "a4-object-detection"
 sys.path.insert(0, str(A4_DIR))
 
+import two_stage_detector as tsd
 import one_stage_detector as osd
 from common import get_fpn_location_coords, nms
 from one_stage_detector import (
@@ -156,3 +157,119 @@ def test_faster_rcnn_forward_with_fake_backbone():
     assert boxes.shape[1] == 4
     assert classes.ndim == 1
     assert scores.ndim == 1
+
+
+def test_faster_rcnn_roi_logits_and_targets_share_level_major_order(monkeypatch):
+    """RoIAlign groups boxes by FPN level, then by image within each level."""
+
+    class FakeRPN(nn.Module):
+        def forward(self, feats, strides, gt_boxes=None):
+            # x1 encodes the expected shifted class ID (1, 2, or 3). Boxes of
+            # different classes use separate y ranges so matching is unambiguous.
+            boxes = {
+                1: torch.tensor([1.0, 1.0, 5.0, 5.0]),
+                2: torch.tensor([2.0, 10.0, 6.0, 14.0]),
+                3: torch.tensor([3.0, 20.0, 7.0, 24.0]),
+            }
+            device = feats["p3"].device
+            proposals = {
+                "p3": [boxes[1][None].to(device), boxes[2][None].to(device)],
+                "p4": [boxes[3][None].to(device), boxes[1][None].to(device)],
+                "p5": [boxes[2][None].to(device), boxes[3][None].to(device)],
+            }
+            zero = feats["p3"].sum() * 0.0
+            return {
+                "proposals": proposals,
+                "loss_rpn_obj": zero,
+                "loss_rpn_box": zero,
+            }
+
+    class CodedHead(nn.Module):
+        def forward(self, roi_feats):
+            shifted_classes = roi_feats[:, 0, 0, 0].round().long()
+            logits = roi_feats.new_full((len(shifted_classes), 4), -10.0)
+            logits[torch.arange(len(logits)), shifted_classes] = 10.0
+            return logits
+
+    def fake_roi_align(feats, boxes, output_size, spatial_scale, aligned):
+        codes = torch.cat([box[:, 0] for box in boxes])
+        return codes[:, None, None, None].expand(
+            -1, feats.shape[1], output_size[0], output_size[1]
+        )
+
+    def take_all_foreground(matched_boxes, num_samples, fg_fraction):
+        return (
+            torch.arange(len(matched_boxes), device=matched_boxes.device),
+            torch.empty(0, dtype=torch.long, device=matched_boxes.device),
+        )
+
+    monkeypatch.setattr(tsd, "mix_gt_with_proposals", lambda proposals, gt: proposals)
+    monkeypatch.setattr(tsd.torchvision.ops, "roi_align", fake_roi_align)
+    monkeypatch.setattr(tsd, "sample_rpn_training", take_all_foreground)
+
+    model = FasterRCNN(
+        FakeBackbone(8), FakeRPN(), stem_channels=[8], num_classes=3,
+        batch_size_per_image=8,
+    )
+    model.cls_pred = CodedHead()
+    model.train()
+
+    class_boxes = [
+        [1.0, 1.0, 5.0, 5.0, 0.0],
+        [2.0, 10.0, 6.0, 14.0, 1.0],
+        [3.0, 20.0, 7.0, 24.0, 2.0],
+    ]
+    gt_boxes = torch.tensor([class_boxes, class_boxes])
+    images = torch.zeros(2, 3, 32, 32)
+
+    losses = model(images, gt_boxes)
+    assert losses["loss_cls"] < 1e-6
+
+
+def test_voc_validation_resize_does_not_center_crop(tmp_path):
+    from torchvision import transforms
+    from a4_helper import VOC2007DetectionTiny
+
+    (tmp_path / "voc07_train.json").write_text("[]")
+    (tmp_path / "voc07_val.json").write_text("[]")
+    train = VOC2007DetectionTiny(str(tmp_path), split="train", image_size=224)
+    val = VOC2007DetectionTiny(str(tmp_path), split="val", image_size=224)
+
+    assert any(isinstance(op, transforms.CenterCrop) for op in train.image_transform.transforms)
+    assert not any(isinstance(op, transforms.CenterCrop) for op in val.image_transform.transforms)
+
+
+def test_inference_writes_gt_even_when_detector_has_no_predictions(tmp_path):
+    from a4_helper import inference_with_detector
+
+    class EmptyDetector(nn.Module):
+        def forward(
+            self, images, gt_boxes=None, test_score_thresh=None, test_nms_thresh=None
+        ):
+            return (
+                torch.empty((0, 4), device=images.device),
+                torch.empty((0,), dtype=torch.long, device=images.device),
+                torch.empty((0,), device=images.device),
+            )
+
+    gt_boxes = torch.tensor(
+        [[[1.0, 2.0, 6.0, 7.0, 0.0], [-1.0, -1.0, -1.0, -1.0, -1.0]]]
+    )
+    loader = [(["example.jpg"], torch.zeros(1, 3, 8, 8), gt_boxes)]
+    output_dir = tmp_path / "map-input"
+
+    inference_with_detector(
+        EmptyDetector(),
+        loader,
+        {0: "object"},
+        score_thresh=0.2,
+        nms_thresh=0.5,
+        output_dir=str(output_dir),
+        device="cpu",
+    )
+
+    gt_path = output_dir / "ground-truth" / "example.txt"
+    det_path = output_dir / "detection-results" / "example.txt"
+    assert gt_path.read_text().strip() == "object 1.00 2.00 6.00 7.00"
+    assert det_path.exists()
+    assert det_path.read_text() == ""
