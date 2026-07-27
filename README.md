@@ -15,29 +15,46 @@ This public study repository maintains programming assignments for the Universit
 
 ## Progress
 
+Progress snapshot: **2026-07-27**. For this progress report, "complete" means
+the required implementation and core experiments are complete; final course
+submission archives and administrative packaging cells are tracked separately.
+
 | Assignment | Topic | Status |
 | --- | --- | --- |
-| A1 | PyTorch 101; k-Nearest Neighbors | Implemented and locally tested |
-| A2 | Linear classifiers; two-layer network | Core implementation complete; GPU experiments pending |
-| A3 | Modular API; CNN; BatchNorm; Autograd | Core implementation complete; GPU experiments pending |
-| A4 | Object detection | Core implementation complete; GPU training artifacts pending |
-| A5 | RNNs; image captioning; Transformers | Core implementation complete; GPU training artifacts pending |
-| A6 | VAE; GAN; style transfer; visualization | Code and notebooks added; Colab/GPU validation pending |
+| A1 | PyTorch 101; k-Nearest Neighbors | **Complete** - required PyTorch and kNN implementations are present and locally tested |
+| A2 | Linear classifiers; two-layer network | **Complete** - all three notebooks executed without notebook errors (13/13, 34/34, and 24/24 code cells) |
+| A3 | Modular API; CNN; BatchNorm; Autograd | **Complete** - both core notebooks executed without errors; only the final submission-packaging cell is not preserved |
+| A4 | Object detection | **In progress** - FCOS/one-stage training is complete (validation mAP about **25.47%**); corrected Faster R-CNN/two-stage training is still running locally and needs final mAP validation |
+| A5 | RNNs; image captioning; Transformers | **In progress** - Colab compatibility issues are fixed and RNN captioning is training; LSTM, attention captioning, Transformers, and saved final outputs remain |
+| A6 | VAE; GAN; style transfer; visualization | **Complete** - all four notebooks executed with saved outputs and no notebook errors (23/23, 15/15, 23/23, and 15/15 code cells) |
+
+### Work remaining for A4 and A5
+
+- **A4 Two-stage detector:** the first completed Faster R-CNN run produced an
+  invalid 0.60% mAP because RoI features and matched labels used inconsistent
+  batch ordering. That issue has been fixed. A clean 9,000-iteration local GPU
+  retraining run is in progress; the remaining work is to save the corrected
+  checkpoint, run validation, and record the final mAP.
+- **A5 RNN/LSTM captioning and Transformers:** the active Colab notebook now
+  has corrected repository-path setup, a current Matplotlib style name, and a
+  compatible ImageEncoder call. RNN training is underway. The remaining work
+  is to finish RNN, LSTM, and attention-captioning training, run
+  Transformers.ipynb, and save the final notebook outputs back to GitHub.
 
 ## Recent updates
 
-As of 2026-07-27, `origin/main` includes a batch of updates after commit
-`570384f`:
+As of 2026-07-27:
 
 - A2-A5 notebooks were adapted for the Colab workflow that clones this GitHub
   repository directly, instead of relying on a manually mounted Google Drive
   folder.
-- A2 now includes `hand_drawn_weights.jpeg` for the challenge problem.
-- A4 includes a small dataset-download helper update in `a4_helper.py`.
-- A6 has been added under `assignments/a6-generative-models/`, including VAE,
-  GAN, network-visualization, and style-transfer notebooks, their companion
-  `.py` implementation files, course utility modules, and style-transfer image
-  assets.
+- A2 now includes hand_drawn_weights.jpeg for the challenge problem.
+- A2, A3, and all four A6 notebooks have been executed and checked for notebook
+  error outputs.
+- A4 FCOS training and evaluation are complete; corrected Faster R-CNN
+  retraining is underway.
+- A5 Colab execution has started after resolving current-runtime compatibility
+  issues; completed outputs are not yet committed.
 
 ## Repository layout
 
@@ -91,8 +108,10 @@ checkpoint cells should still be run from the course notebooks.
 
 ## Remaining work
 
-- Run and preserve the official GPU notebook outputs for A2-A6 before treating
-  the notebooks as final course-submission artifacts.
+- Finish and validate the corrected A4 two-stage detector, then preserve its
+  final mAP output.
+- Finish A5 RNN/LSTM/attention captioning and Transformers.ipynb, then save
+  the completed Colab outputs back to the repository.
 - Add a lightweight A6 pytest smoke-test suite if this repository should track
   A6 implementation correctness locally, the same way it currently tracks
   A1-A5.
